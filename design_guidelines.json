@@ -1,0 +1,120 @@
+{
+  "theme": "dark",
+  "archetype": "Archetype 2: The Performance Pro",
+  "design_philosophy": "A command-center sports analytics dashboard. High-contrast data presentation, tight grid structures, and clear visual hierarchy for fast decision making. Embraces a sleek, tactical 'Control Room' feel suitable for high-intensity sports betting tools.",
+  "typography": {
+    "font_family": {
+      "headings": "'Barlow Condensed', sans-serif",
+      "body": "'DM Sans', sans-serif",
+      "mono": "'JetBrains Mono', monospace"
+    },
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter uppercase",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight uppercase",
+      "h3": "text-xl sm:text-2xl font-semibold tracking-tight",
+      "body": "text-base font-normal leading-relaxed",
+      "small": "text-sm font-medium",
+      "data_large": "text-5xl font-black tracking-tighter font-mono text-[#FFFFFF]",
+      "overline": "text-xs font-bold uppercase tracking-[0.2em] text-neutral-400"
+    }
+  },
+  "colors": {
+    "background": {
+      "base": "#0A0A0A",
+      "surface_1": "#141414",
+      "surface_2": "#1A1A1A"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A1A1AA",
+      "muted": "#52525B"
+    },
+    "brand": {
+      "primary": "#FF5A00",
+      "primary_hover": "#E04F00",
+      "accent": "#CCFF00"
+    },
+    "semantic": {
+      "success": "#00E676",
+      "danger": "#FF3B30",
+      "warning": "#FFCC00"
+    },
+    "borders": {
+      "default": "rgba(255, 255, 255, 0.1)",
+      "focus": "#FF5A00"
+    }
+  },
+  "layout": {
+    "grid_system": "The 'Control Room' Grid",
+    "spacing_scale": "Dense and tactical. Use p-4 to p-6 for analytical cards, gap-4 or gap-6 for grids to maintain data proximity.",
+    "container": "max-w-[1440px] mx-auto px-4 md:px-8",
+    "surface_strategy": "Grid Borders (Technical Look) - Flat backgrounds with 1px subtle borders (border-white/10). No soft shadows, use sharp 1px strokes. Use 'rounded-md' sparingly, keep edges sharp."
+  },
+  "components": {
+    "cards": {
+      "base": "bg-[#141414] border border-white/10 rounded-lg p-6",
+      "hover": "hover:border-white/20 hover:bg-[#1a1a1a] transition-colors duration-200"
+    },
+    "buttons": {
+      "primary": "bg-[#FF5A00] text-white font-bold uppercase tracking-wide px-6 py-3 rounded hover:bg-[#E04F00] transition-colors",
+      "secondary": "bg-transparent border border-white/20 text-white font-bold uppercase tracking-wide px-6 py-3 rounded hover:border-white/40 hover:bg-white/5 transition-all"
+    },
+    "tabs": {
+      "base": "flex space-x-2 border-b border-white/10 w-full overflow-x-auto no-scrollbar",
+      "tab": "px-4 py-3 text-sm font-bold uppercase text-neutral-400 hover:text-white transition-colors whitespace-nowrap",
+      "active": "text-[#FF5A00] border-b-2 border-[#FF5A00]"
+    },
+    "odds_indicator": {
+      "likely": "text-[#00E676] bg-[#00E676]/10 px-2 py-1 rounded text-sm font-bold border border-[#00E676]/20",
+      "unlikely": "text-[#FF3B30] bg-[#FF3B30]/10 px-2 py-1 rounded text-sm font-bold border border-[#FF3B30]/20"
+    }
+  },
+  "motion": {
+    "hover": "Subtle background lightening and border opacity increase.",
+    "loading": "Use an ASCII-style retro-tech loader or a pulsing structural skeleton. For 'Atualizar análise', button should show a spinner and text 'Buscando Flashscore...'",
+    "transitions": "All interactive elements should have transition-colors duration-200 ease-in-out."
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://static.prod-images.emergentagent.com/jobs/889cf469-3b3d-4b6f-aa96-ec004d345cc7/images/54b58a90abb1f664878d5610af5cf411d4e599f23860a4e10465988f20337dbc.png",
+        "category": "background",
+        "description": "Dark abstract geometric background with subtle glowing lines for the main layout/hero section."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1599158150601-1417ebbaafdd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwxfHxzb2NjZXIlMjBzdGFkaXVtJTIwbmlnaHQlMjBkYXJrfGVufDB8fHx8MTc3OTQ2MjYxMXww&ixlib=rb-4.1.0&q=85",
+        "category": "header",
+        "description": "Dark night stadium background for the Match Analysis Header overlay."
+      },
+      {
+        "url": "https://static.prod-images.emergentagent.com/jobs/889cf469-3b3d-4b6f-aa96-ec004d345cc7/images/448779167f0a7467030d583f8bb84b2e06f91bc72535c25c75a80f04ddc02d11.png",
+        "category": "hero",
+        "description": "Minimalist soccer ball on dark turf. Can be used for empty states or generic sports placeholders."
+      }
+    ]
+  },
+  "accessibility": {
+    "contrast": "Ensure text over images uses a bg-black/60 to bg-black/80 overlay to maintain a 4.5:1 ratio. High legibility is critical.",
+    "testing": "All interactive and key informational elements MUST include a data-testid attribute (e.g., data-testid='update-analysis-btn').",
+    "focus": "focus:ring-2 focus:ring-[#FF5A00] focus:outline-none focus:ring-offset-2 focus:ring-offset-[#0A0A0A]"
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "usage": "Use sharp, duotone, or bold weights for sports data metrics (e.g., Target, ChartLineUp, SoccerBall). Do not use soft rounded icons."
+  },
+  "instructions_to_main_agent": {
+    "general": "Build a dark-mode hybrid fullstack app using React, Tailwind, and Shadcn UI. Implement the 'Control Room' dense grid design pattern.",
+    "setup": "Import 'Barlow Condensed' and 'DM Sans' from Google Fonts in index.html or global css. Install @phosphor-icons/react.",
+    "routing": "Create a main rounds listing page, and a detailed match analysis page.",
+    "data_fetching": "Implement loading states during 'Flashscore scraping'. Show a loading skeleton while calculating fair odds.",
+    "odds_logic": "For each match, calculate: (favorable_events / total_matches) * 100 = percentage. Fair odd = 100 / percentage.",
+    "ui_specifics": [
+      "1. Round 17 must have a distinct 'Próxima' (Next) badge in the rounds list.",
+      "2. The Match Analysis Header must use the stadium night image with a dark overlay (bg-black/60 to /80).",
+      "3. Odds cards must clearly show high/unlikely (Red) and low/likely (Green) using the odds_indicator styles.",
+      "4. Do NOT use generic inter font; use Barlow Condensed for numbers and headings to give a sports/athletic feel.",
+      "5. Use 'Bento' or 'Control Room' grid for the statistical breakdown (Home wins, Away losses, H2H)."
+    ],
+    "testing": "CRITICAL: Add data-testid attributes to all tabs, match cards, odds containers, and the update button."
+  }
+}
