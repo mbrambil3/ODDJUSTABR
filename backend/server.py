@@ -124,20 +124,67 @@ async def get_rounds(force: bool = False):
     if not force:
         cached = await get_cache(cache_key)
         if cached:
-            return {"rounds": cached, "cached": True}
+            rounds_all = cached
+        else:
+            rounds_all = None
+    else:
+        rounds_all = None
 
-    html = await fetch_rendered_html(CALENDAR_URL, wait_after_idle_ms=3000)
-    if not html:
-        stale = await get_stale_cache(cache_key)
-        if stale:
-            return {"rounds": stale, "cached": True, "stale": True}
-        raise HTTPException(status_code=502, detail="Falha ao acessar Flashscore. Tente novamente em instantes.")
+    if rounds_all is None:
+        html = await fetch_rendered_html(CALENDAR_URL, wait_after_idle_ms=3000)
+        if not html:
+            stale = await get_stale_cache(cache_key)
+            if stale:
+                rounds_all = stale
+            else:
+                raise HTTPException(status_code=502, detail="Falha ao acessar Flashscore. Tente novamente em instantes.")
+        else:
+            rounds_all = parse_calendar(html, teams_lookup=TEAMS)
+            if not rounds_all:
+                raise HTTPException(status_code=502, detail="Não foi possível parsear o calendário.")
+            await set_cache(cache_key, rounds_all)
 
-    rounds = parse_calendar(html, teams_lookup=TEAMS)
-    if not rounds:
-        raise HTTPException(status_code=502, detail="Não foi possível parsear o calendário.")
-    await set_cache(cache_key, rounds)
-    return {"rounds": rounds, "cached": False}
+    # Upcoming rounds: take only the first 2 from the calendar (current + next).
+    # The first round in the calendar is the closest upcoming = "atual"; the second = "próxima".
+    upcoming_rounds = []
+    for idx, r in enumerate(rounds_all[:2]):
+        flag = "current" if idx == 0 else "next"
+        upcoming_rounds.append({**r, "status": flag, "is_analyzable": True})
+
+    upcoming_round_nums = {r["round"] for r in upcoming_rounds}
+
+    # Finalized rounds: built from analysis_snapshots collection (only rounds NOT in upcoming).
+    snapshots_cursor = db.analysis_snapshots.find(
+        {}, {"_id": 0, "match_id": 1, "match": 1, "scraped_at": 1}
+    )
+    snapshots = await snapshots_cursor.to_list(length=1000)
+    finalized_rounds_dict: dict = {}
+    for snap in snapshots:
+        m = snap.get("match") or {}
+        rn = m.get("round")
+        if rn is None or rn in upcoming_round_nums:
+            continue
+        rd = finalized_rounds_dict.setdefault(rn, {"round": rn, "matches": {}, "status": "finalized", "is_analyzable": True})
+        if m.get("match_id") and m["match_id"] not in rd["matches"]:
+            rd["matches"][m["match_id"]] = {
+                "match_id": m["match_id"],
+                "home": m.get("home"),
+                "away": m.get("away"),
+                "home_slug": m.get("home_slug"),
+                "home_id": m.get("home_id"),
+                "away_slug": m.get("away_slug"),
+                "away_id": m.get("away_id"),
+                "date": m.get("date"),
+                "time": m.get("time"),
+            }
+    finalized_rounds = []
+    for rn in sorted(finalized_rounds_dict.keys()):
+        rd = finalized_rounds_dict[rn]
+        finalized_rounds.append({"round": rn, "matches": list(rd["matches"].values()), "status": "finalized", "is_analyzable": True})
+
+    # Combine: finalized (oldest first), then upcoming (current, next)
+    combined = finalized_rounds + upcoming_rounds
+    return {"rounds": combined, "cached": False}
 
 
 @api_router.get("/match/{match_id}/analysis")
