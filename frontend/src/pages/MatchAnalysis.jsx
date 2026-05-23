@@ -362,7 +362,7 @@ export default function MatchAnalysis() {
                       justa <span className="text-white font-bold">{o.fairOdd.toFixed(2)}</span>
                     </span>
                     <span
-                      className={`font-mono-num font-black text-sm ml-auto ${
+                      className={`font-mono-num font-black text-sm ${
                         o.edge >= 10 ? "text-[#00E676]" : "text-[#CCFF00]"
                       }`}
                     >
