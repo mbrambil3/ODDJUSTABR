@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getMatchAnalysis, refreshMatch } from "../lib/api";
 import { getTeamLogo } from "../lib/teamLogos";
 import { OddCard } from "../components/OddCard";
-import { ArrowLeft, ArrowsClockwise, Target, ChartBar, Trophy, House, AirplaneTakeoff, Swap } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowsClockwise, Target, ChartBar, Trophy, House, AirplaneTakeoff, Swap, Eraser, Calculator } from "@phosphor-icons/react";
 
 const HERO_BG = "https://images.unsplash.com/photo-1599158150601-1417ebbaafdd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwxfHxzb2NjZXIlMjBzdGFkaXVtJTIwbmlnaHQlMjBkYXJrfGVufDB8fHx8MTc3OTQ2MjYxMXww&ixlib=rb-4.1.0&q=85";
 
@@ -74,6 +74,64 @@ export default function MatchAnalysis() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [userOdds, setUserOdds] = useState({});
+
+  const storageKey = matchId ? `oddjusta:user_odds:${matchId}` : null;
+
+  // Load saved user odds for this match (per-match localStorage)
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      setUserOdds(raw ? JSON.parse(raw) : {});
+    } catch {
+      setUserOdds({});
+    }
+  }, [storageKey]);
+
+  const handleUserOddChange = (market, value) => {
+    setUserOdds((prev) => {
+      const next = { ...prev };
+      if (value === null || value === undefined || value === "") {
+        delete next[market];
+      } else {
+        next[market] = value;
+      }
+      try {
+        if (storageKey) {
+          if (Object.keys(next).length === 0) localStorage.removeItem(storageKey);
+          else localStorage.setItem(storageKey, JSON.stringify(next));
+        }
+      } catch {}
+      return next;
+    });
+  };
+
+  const clearAllUserOdds = () => {
+    setUserOdds({});
+    try {
+      if (storageKey) localStorage.removeItem(storageKey);
+    } catch {}
+  };
+
+  // Compute summary of value bets across all 6 markets
+  const valueSummary = useMemo(() => {
+    if (!data?.fair_odds) return { filled: 0, withValue: 0, highValue: 0, best: null };
+    const f = data.fair_odds;
+    let filled = 0, withValue = 0, highValue = 0;
+    let best = null;
+    ["1", "X", "2", "1X", "2X", "12"].forEach((m) => {
+      const u = parseFloat((userOdds[m] ?? "").toString().replace(",", "."));
+      const fair = f[m];
+      if (!u || u <= 0 || !fair) return;
+      filled++;
+      const edge = (u / fair - 1) * 100;
+      if (edge >= 3) withValue++;
+      if (edge >= 10) highValue++;
+      if (!best || edge > best.edge) best = { market: m, edge, userOdd: u, fairOdd: fair };
+    });
+    return { filled, withValue, highValue, best };
+  }, [data, userOdds]);
 
   const load = async (force = false) => {
     try {
@@ -201,6 +259,113 @@ export default function MatchAnalysis() {
       </section>
 
       <main className="relative z-10 max-w-[1440px] mx-auto px-4 md:px-8 py-8 md:py-12 space-y-12">
+        {/* Value Bet helper banner */}
+        <section
+          data-testid="value-bet-banner"
+          className="border border-white/10 bg-gradient-to-br from-[#141414] to-[#0F0F0F] rounded-lg p-5 md:p-6"
+        >
+          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+            <div className="flex items-start gap-3 flex-1">
+              <div className="w-10 h-10 rounded-md bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center flex-shrink-0">
+                <Calculator size={20} weight="duotone" className="text-[#CCFF00]" />
+              </div>
+              <div>
+                <h4 className="font-heading font-black text-lg md:text-xl uppercase tracking-tight text-white leading-tight">
+                  Compare com a casa de aposta
+                </h4>
+                <p className="text-xs md:text-sm text-neutral-400 mt-1 leading-relaxed">
+                  Cole a odd que a casa está oferecendo em cada mercado abaixo. Calculamos o
+                  <span className="text-white font-bold"> edge (% de valor)</span> e o
+                  <span className="text-white font-bold"> EV</span> para te dizer se vale a aposta.
+                </p>
+              </div>
+            </div>
+
+            {/* Summary chips */}
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+              <div className="border border-white/10 bg-black/30 rounded-md px-3 py-2 text-center min-w-[70px]">
+                <div className="font-mono-num font-black text-xl text-white leading-none">
+                  {valueSummary.filled}
+                  <span className="text-neutral-500 text-sm font-normal">/6</span>
+                </div>
+                <div className="text-[9px] uppercase tracking-widest text-neutral-500 font-bold mt-1">
+                  Preenchidas
+                </div>
+              </div>
+              <div
+                className={`border rounded-md px-3 py-2 text-center min-w-[70px] ${
+                  valueSummary.withValue > 0
+                    ? "border-[#CCFF00]/40 bg-[#CCFF00]/5"
+                    : "border-white/10 bg-black/30"
+                }`}
+              >
+                <div
+                  className={`font-mono-num font-black text-xl leading-none ${
+                    valueSummary.withValue > 0 ? "text-[#CCFF00]" : "text-neutral-500"
+                  }`}
+                >
+                  {valueSummary.withValue}
+                </div>
+                <div className="text-[9px] uppercase tracking-widest text-neutral-500 font-bold mt-1">
+                  Com valor
+                </div>
+              </div>
+              <div
+                className={`border rounded-md px-3 py-2 text-center min-w-[70px] ${
+                  valueSummary.highValue > 0
+                    ? "border-[#00E676]/40 bg-[#00E676]/5"
+                    : "border-white/10 bg-black/30"
+                }`}
+              >
+                <div
+                  className={`font-mono-num font-black text-xl leading-none ${
+                    valueSummary.highValue > 0 ? "text-[#00E676]" : "text-neutral-500"
+                  }`}
+                >
+                  {valueSummary.highValue}
+                </div>
+                <div className="text-[9px] uppercase tracking-widest text-neutral-500 font-bold mt-1">
+                  Valor alto
+                </div>
+              </div>
+
+              {valueSummary.filled > 0 && (
+                <button
+                  data-testid="clear-user-odds-btn"
+                  onClick={clearAllUserOdds}
+                  className="ml-1 inline-flex items-center gap-1.5 border border-white/15 hover:border-white/30 hover:bg-white/5 text-neutral-300 text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded transition"
+                >
+                  <Eraser size={14} weight="bold" /> Limpar
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Best opportunity highlight */}
+          {valueSummary.best && valueSummary.best.edge >= 3 && (
+            <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 font-bold">
+                Melhor oportunidade →
+              </span>
+              <span className="font-heading font-black text-base text-white uppercase">
+                Mercado {valueSummary.best.market}
+              </span>
+              <span className="font-mono-num text-sm text-neutral-400">
+                casa <span className="text-white font-bold">{valueSummary.best.userOdd.toFixed(2)}</span>
+                <span className="mx-1.5">·</span>
+                justa <span className="text-white font-bold">{valueSummary.best.fairOdd.toFixed(2)}</span>
+              </span>
+              <span
+                className={`font-mono-num font-black text-base ${
+                  valueSummary.best.edge >= 10 ? "text-[#00E676]" : "text-[#CCFF00]"
+                }`}
+              >
+                +{valueSummary.best.edge.toFixed(1)}%
+              </span>
+            </div>
+          )}
+        </section>
+
         {/* Resultado (1, X, 2) */}
         <section>
           <div className="flex items-center gap-3 mb-5">
@@ -213,9 +378,9 @@ export default function MatchAnalysis() {
             </div>
           </div>
           <div data-testid="market-1x2" className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <OddCard market="1" odd={f["1"]} percentage={p["1"]} favorable={fav["1"]} total={totals.total_analyzed} />
-            <OddCard market="X" odd={f["X"]} percentage={p["X"]} favorable={fav["X"]} total={totals.total_analyzed} />
-            <OddCard market="2" odd={f["2"]} percentage={p["2"]} favorable={fav["2"]} total={totals.total_analyzed} />
+            <OddCard market="1" odd={f["1"]} percentage={p["1"]} favorable={fav["1"]} total={totals.total_analyzed} userOdd={userOdds["1"]} onUserOddChange={handleUserOddChange} />
+            <OddCard market="X" odd={f["X"]} percentage={p["X"]} favorable={fav["X"]} total={totals.total_analyzed} userOdd={userOdds["X"]} onUserOddChange={handleUserOddChange} />
+            <OddCard market="2" odd={f["2"]} percentage={p["2"]} favorable={fav["2"]} total={totals.total_analyzed} userOdd={userOdds["2"]} onUserOddChange={handleUserOddChange} />
           </div>
         </section>
 
@@ -231,9 +396,9 @@ export default function MatchAnalysis() {
             </div>
           </div>
           <div data-testid="market-dc" className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <OddCard market="1X" odd={f["1X"]} percentage={p["1X"]} favorable={fav["1X"]} total={totals.total_analyzed} />
-            <OddCard market="2X" odd={f["2X"]} percentage={p["2X"]} favorable={fav["2X"]} total={totals.total_analyzed} />
-            <OddCard market="12" odd={f["12"]} percentage={p["12"]} favorable={fav["12"]} total={totals.total_analyzed} />
+            <OddCard market="1X" odd={f["1X"]} percentage={p["1X"]} favorable={fav["1X"]} total={totals.total_analyzed} userOdd={userOdds["1X"]} onUserOddChange={handleUserOddChange} />
+            <OddCard market="2X" odd={f["2X"]} percentage={p["2X"]} favorable={fav["2X"]} total={totals.total_analyzed} userOdd={userOdds["2X"]} onUserOddChange={handleUserOddChange} />
+            <OddCard market="12" odd={f["12"]} percentage={p["12"]} favorable={fav["12"]} total={totals.total_analyzed} userOdd={userOdds["12"]} onUserOddChange={handleUserOddChange} />
           </div>
         </section>
 
