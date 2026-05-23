@@ -116,21 +116,24 @@ export default function MatchAnalysis() {
 
   // Compute summary of value bets across all 6 markets
   const valueSummary = useMemo(() => {
-    if (!data?.fair_odds) return { filled: 0, withValue: 0, highValue: 0, best: null };
+    if (!data?.fair_odds) return { filled: 0, withValue: 0, highValue: 0, opportunities: [] };
     const f = data.fair_odds;
     let filled = 0, withValue = 0, highValue = 0;
-    let best = null;
+    const opportunities = [];
     ["1", "X", "2", "1X", "2X", "12"].forEach((m) => {
       const u = parseFloat((userOdds[m] ?? "").toString().replace(",", "."));
       const fair = f[m];
       if (!u || u <= 0 || !fair) return;
       filled++;
       const edge = (u / fair - 1) * 100;
-      if (edge >= 3) withValue++;
+      if (edge >= 3) {
+        withValue++;
+        opportunities.push({ market: m, edge, userOdd: u, fairOdd: fair });
+      }
       if (edge >= 10) highValue++;
-      if (!best || edge > best.edge) best = { market: m, edge, userOdd: u, fairOdd: fair };
     });
-    return { filled, withValue, highValue, best };
+    opportunities.sort((a, b) => b.edge - a.edge);
+    return { filled, withValue, highValue, opportunities };
   }, [data, userOdds]);
 
   const load = async (force = false) => {
@@ -341,27 +344,33 @@ export default function MatchAnalysis() {
             </div>
           </div>
 
-          {/* Best opportunity highlight */}
-          {valueSummary.best && valueSummary.best.edge >= 3 && (
-            <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 font-bold">
-                Melhor oportunidade →
-              </span>
-              <span className="font-heading font-black text-base text-white uppercase">
-                Mercado {valueSummary.best.market}
-              </span>
-              <span className="font-mono-num text-sm text-neutral-400">
-                casa <span className="text-white font-bold">{valueSummary.best.userOdd.toFixed(2)}</span>
-                <span className="mx-1.5">·</span>
-                justa <span className="text-white font-bold">{valueSummary.best.fairOdd.toFixed(2)}</span>
-              </span>
-              <span
-                className={`font-mono-num font-black text-base ${
-                  valueSummary.best.edge >= 10 ? "text-[#00E676]" : "text-[#CCFF00]"
-                }`}
-              >
-                +{valueSummary.best.edge.toFixed(1)}%
-              </span>
+          {/* Best opportunities highlight (sorted by edge desc) */}
+          {valueSummary.opportunities.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 font-bold mb-2">
+                Melhores oportunidades
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {valueSummary.opportunities.map((o) => (
+                  <div key={o.market} className="flex flex-wrap items-center gap-3">
+                    <span className="font-heading font-black text-sm text-white uppercase min-w-[80px]">
+                      Mercado {o.market}
+                    </span>
+                    <span className="font-mono-num text-xs text-neutral-400">
+                      casa <span className="text-white font-bold">{o.userOdd.toFixed(2)}</span>
+                      <span className="mx-1.5">·</span>
+                      justa <span className="text-white font-bold">{o.fairOdd.toFixed(2)}</span>
+                    </span>
+                    <span
+                      className={`font-mono-num font-black text-sm ml-auto ${
+                        o.edge >= 10 ? "text-[#00E676]" : "text-[#CCFF00]"
+                      }`}
+                    >
+                      +{o.edge.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </section>
